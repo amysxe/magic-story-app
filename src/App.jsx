@@ -134,9 +134,9 @@ const App = () => {
       
       if (audioRef.current) {
         audioRef.current.src = audioURL;
-        audioRef.current.oncanplaythrough = () => {
-          setIsAudioReady(true);
-        };
+        // The audio is ready as soon as the URL is set. This is more reliable
+        // than waiting for oncanplaythrough, which can be inconsistent on mobile.
+        setIsAudioReady(true);
         audioRef.current.onended = () => {
           setPlaying(false);
           setPaused(false);
