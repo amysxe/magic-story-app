@@ -79,7 +79,7 @@ const App = () => {
     setStory(null);
 
     // IMPORTANT: Replace 'YOUR_OPENAI_API_KEY' with your actual key here.
-    const apiKey = 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;
+    const apiKey = 'YOUR_OPENAI_API_KEY';
 
     try {
       const textPayload = {
@@ -232,7 +232,7 @@ const App = () => {
 
         {/* Input Fields Card */}
         <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-gray-200">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="flex flex-col">
               <label className="text-gray-700 font-semibold mb-2">Category</label>
               <select
