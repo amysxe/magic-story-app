@@ -1,18 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-const VoiceSelector = ({ language }) => {
-  switch (language) {
-    case 'English':
-      return 'onyx';
-    case 'Bahasa':
-      return 'fable';
-    case 'German':
-      return 'nova';
-    default:
-      return 'onyx';
-  }
-};
-
 const App = () => {
   const [category, setCategory] = useState("Animal");
   const [length, setLength] = useState("5-10 min");
@@ -23,7 +10,6 @@ const App = () => {
   const [loading, setLoading] = useState(false);
   const [loaderMessage, setLoaderMessage] = useState("Meaningful story makes memorable moments");
   const [error, setError] = useState('');
-  const [apiKey, setApiKey] = useState('');
 
   const [playing, setPlaying] = useState(false);
   const [paused, setPaused] = useState(false);
@@ -70,10 +56,6 @@ const App = () => {
 
   const generateStory = async () => {
     setError('');
-    if (!apiKey) {
-      setError("Please enter your API key to generate a story.");
-      return;
-    }
 
     // Stop audio if playing
     if (audioRef.current) {
@@ -85,67 +67,29 @@ const App = () => {
     setStory(null);
 
     try {
-      const textPayload = {
-        model: "gpt-3.5-turbo",
-        messages: [
-          {
-            role: "system",
-            content: `You are a children's story writer. Generate a JSON object with a "title" field (string) and a "content" field (an array of strings for paragraphs).`
-          },
-          {
-            role: "user",
-            content: `Write a ${length} children's story in ${language} about a ${category}, teaching the moral of ${moral}.`
-          }
-        ],
-        response_format: { type: "json_object" }
+      const payload = {
+        type: 'story',
+        category,
+        length,
+        language,
+        moral,
       };
 
-      const imagePayload = {
-        prompt: `Children's book illustration, pastel palette, soft outlines, whimsical, theme: ${category}, focus on one main scene that strongly represents the story (no text).`,
-        n: 1,
-        size: "1024x1024"
-      };
-
-      // Generate Story Text
-      const textApiUrl = 'https://api.openai.com/v1/chat/completions';
-      const textResponse = await fetchWithRetry(textApiUrl, {
+      const res = await fetchWithRetry('/api/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
         },
-        body: JSON.stringify(textPayload),
+        body: JSON.stringify(payload),
       });
 
-      if (!textResponse.ok) {
-        throw new Error('Failed to generate story text.');
+      if (!res.ok) {
+        throw new Error('Failed to generate story.');
       }
 
-      const textResult = await textResponse.json();
-      const storyContent = JSON.parse(textResult.choices[0].message.content);
+      const data = await res.json();
 
-      if (!storyContent || !storyContent.title || !storyContent.content) {
-        throw new Error('Invalid story format received.');
-      }
-      
-      // Generate Image
-      const imageApiUrl = 'https://api.openai.com/v1/images/generations';
-      const imageResponse = await fetchWithRetry(imageApiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify(imagePayload),
-      });
-
-      let imageUrl = '';
-      if (imageResponse.ok) {
-        const imageResult = await imageResponse.json();
-        imageUrl = imageResult.data?.[0]?.url;
-      }
-
-      setStory({ ...storyContent, image: imageUrl });
+      setStory(data);
       setLoading(false);
       storyRef.current?.scrollIntoView({ behavior: "smooth" });
 
@@ -158,10 +102,6 @@ const App = () => {
 
   const playAudio = async (text) => {
     setError('');
-    if (!apiKey) {
-      setError("Please enter your API key to play audio.");
-      return;
-    }
     if (audioRef.current && paused) {
       audioRef.current.play();
       setPaused(false);
@@ -172,21 +112,18 @@ const App = () => {
     setPlaying(true);
 
     try {
-      const ttsApiUrl = 'https://api.openai.com/v1/audio/speech';
-      const ttsPayload = {
-        model: "tts-1",
-        input: text,
-        voice: VoiceSelector({ language }),
-        response_format: "mp3"
+      const payload = {
+        type: 'audio',
+        text,
+        language,
       };
 
-      const res = await fetchWithRetry(ttsApiUrl, {
+      const res = await fetchWithRetry('/api/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
         },
-        body: JSON.stringify(ttsPayload),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -497,16 +434,6 @@ const App = () => {
         </header>
 
         <div className="card">
-          <div className="form-group mb-4">
-            <label className="label">OpenAI API Key</label>
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              className="text-input"
-              placeholder="Enter your API key here..."
-            />
-          </div>
           <div className="form-grid">
             <div className="form-group">
               <label className="label">Category</label>
@@ -564,7 +491,7 @@ const App = () => {
         <div className="generate-button-container">
           <button
             onClick={generateStory}
-            disabled={loading || !apiKey}
+            disabled={loading}
             className="button generate-button"
           >
             {loading ? 'Generating...' : 'Generate Story'}
