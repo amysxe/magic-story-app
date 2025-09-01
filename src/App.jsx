@@ -266,16 +266,33 @@ const App = () => {
           margin-bottom: 0.5rem;
         }
         
+        .select-wrapper {
+          position: relative;
+          width: 100%;
+        }
+
+        .select-wrapper::after {
+          content: '\u25BC';
+          position: absolute;
+          right: 1.5rem;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #9ca3af;
+          pointer-events: none;
+        }
+
         .select-input, .text-input {
           width: 100%;
           padding: 0.75rem;
           border-radius: 0.5rem;
           border: 1px solid #d1d5db;
           transition: box-shadow 0.3s;
-          -webkit-appearance: none; /* Fix for Safari styling issues */
+          -webkit-appearance: none;
           -moz-appearance: none;
           appearance: none;
+          padding-right: 2.5rem; /* Make space for the arrow */
         }
+
         .select-input:focus, .text-input:focus {
           outline: none;
           box-shadow: 0 0 0 2px #fb923c;
@@ -483,53 +500,61 @@ const App = () => {
           <div className="form-grid">
             <div className="form-group">
               <label className="label">Category</label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="select-input"
-              >
-                <option>Animal</option>
-                <option>Fruit</option>
-                <option>Person</option>
-                <option>Mix & Random</option>
-              </select>
+              <div className="select-wrapper">
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="select-input"
+                >
+                  <option>Animal</option>
+                  <option>Fruit</option>
+                  <option>Person</option>
+                  <option>Mix & Random</option>
+                </select>
+              </div>
             </div>
             <div className="form-group">
               <label className="label">Length</label>
-              <select
-                value={length}
-                onChange={(e) => setLength(e.target.value)}
-                className="select-input"
-              >
-                <option>5-10 min</option>
-                <option>10-15 min</option>
-                <option>&gt;15 min</option>
-              </select>
+              <div className="select-wrapper">
+                <select
+                  value={length}
+                  onChange={(e) => setLength(e.target.value)}
+                  className="select-input"
+                >
+                  <option>5-10 min</option>
+                  <option>10-15 min</option>
+                  <option>&gt;15 min</option>
+                </select>
+              </div>
             </div>
             <div className="form-group">
               <label className="label">Language</label>
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                className="select-input"
-              >
-                <option>English</option>
-                <option>Bahasa</option>
-                <option>German</option>
-              </select>
+              <div className="select-wrapper">
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  className="select-input"
+                >
+                  <option>English</option>
+                  <option>Bahasa</option>
+                  <option>German</option>
+                </select>
+              </div>
             </div>
             <div className="form-group">
               <label className="label">Moral</label>
-              <select
-                value={moral}
-                onChange={(e) => setMoral(e.target.value)}
-                className="select-input"
-              >
-                <option>Kindness</option>
-                <option>Friendship</option>
-                <option>Honesty</option>
-                <option>Perseverance</option>
-              </select>
+              <div className="select-wrapper">
+                <select
+                  value={moral}
+                  onChange={(e) => setMoral(e.target.value)}
+                  className="select-input"
+                >
+                  <option>Kindness</option>
+                  <option>Friendship</option>
+                  <option>Honesty</option>
+                  <option>Perseverance</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -628,7 +653,7 @@ const App = () => {
         )}
 
         <footer className="footer">
-          Copyright &copy; 2025 by Laniakea Digital // Naimy
+          Crafted with love. Laniakea Digital // Naimy.
         </footer>
       </div>
     </div>
