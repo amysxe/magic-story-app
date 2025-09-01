@@ -101,6 +101,11 @@ const App = () => {
       const storyData = await storyRes.json();
       setStory(storyData);
       
+      // Auto-scroll to the story result after the story is set
+      setTimeout(() => {
+        storyRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+
       // Step 2: Generate Audio (non-blocking)
       const audioPayload = {
         type: 'audio',
@@ -608,12 +613,14 @@ const App = () => {
           </div>
         )}
 
-        <button
-          className="button scroll-button"
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        >
-          ↑ Scroll to top
-        </button>
+        {story && (
+          <button
+            className="button scroll-button"
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          >
+            ↑ Scroll to top
+          </button>
+        )}
 
         <footer className="footer">
           Copyright &copy; 2025 by Laniakea Digital
