@@ -74,10 +74,17 @@ const App = () => {
 
     try {
       // Step 1: Generate Story Text and Image
+      // Map the selected length to a more specific prompt for the AI
+      const lengthPrompt = {
+        "5-10 min": "a short story, roughly 300-500 words",
+        "10-15 min": "a medium-length story, around 500-800 words",
+        ">15 min": "a long and detailed story, over 800 words",
+      }[length];
+
       const storyPayload = {
         type: 'story',
         category,
-        length,
+        length: lengthPrompt, // Use the new, more descriptive prompt
         language,
         moral,
       };
@@ -579,7 +586,7 @@ const App = () => {
         </button>
 
         <footer className="footer">
-          Copyright &copy; 2025 by Laniakea Digital
+          Copyright &copy; 2025 by Laniakea Digital // Naimy.
         </footer>
       </div>
     </div>
