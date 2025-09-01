@@ -66,15 +66,12 @@ const App = () => {
     }
     setPlaying(false);
     setPaused(false);
-
-    // Immediately clear story content and reset states
     setStory(null);
     setIsAudioReady(false);
     setLoading(true);
 
     try {
       // Step 1: Generate Story Text and Image
-      // Map the selected length to a more specific prompt for the AI
       const lengthPrompt = {
         "5-10 min": "a short story, roughly 300-500 words",
         "10-15 min": "a medium-length story, around 500-800 words",
@@ -84,7 +81,7 @@ const App = () => {
       const storyPayload = {
         type: 'story',
         category,
-        length: lengthPrompt, // Use the new, more descriptive prompt
+        length: lengthPrompt,
         language,
         moral,
       };
@@ -104,7 +101,7 @@ const App = () => {
       const storyData = await storyRes.json();
       setStory(storyData);
       
-      // Step 2: Generate Audio
+      // Step 2: Generate Audio (non-blocking)
       const audioPayload = {
         type: 'audio',
         text: [storyData.title, ...storyData.content].join("\n"),
@@ -130,7 +127,6 @@ const App = () => {
 
       audioEl.oncanplaythrough = () => {
         setIsAudioReady(true);
-        storyRef.current?.scrollIntoView({ behavior: "smooth" });
       };
       audioEl.onended = () => {
         setPlaying(false);
@@ -266,6 +262,9 @@ const App = () => {
           border-radius: 0.5rem;
           border: 1px solid #d1d5db;
           transition: box-shadow 0.3s;
+          -webkit-appearance: none; /* Fix for Safari styling issues */
+          -moz-appearance: none;
+          appearance: none;
         }
         .select-input:focus, .text-input:focus {
           outline: none;
@@ -280,6 +279,7 @@ const App = () => {
           transition: transform 0.3s, background-color 0.3s;
           border-radius: 1.5rem;
           border: none;
+          cursor: pointer;
         }
         .generate-button {
           width: 100%;
@@ -430,6 +430,8 @@ const App = () => {
             border-radius: 1.5rem;
             font-weight: bold;
             transition: background-color 0.3s, transform 0.3s;
+            border: none;
+            cursor: pointer;
         }
         .new-story-button:hover {
             background-color: #ea580c;
@@ -446,6 +448,8 @@ const App = () => {
           border-radius: 9999px;
           transition: transform 0.3s;
           box-shadow: none;
+          border: none;
+          cursor: pointer;
         }
         .scroll-button:hover {
           transform: translateY(-2px);
@@ -545,7 +549,7 @@ const App = () => {
           </div>
         )}
 
-        {story && isAudioReady && (
+        {story && (
           <div ref={storyRef} className="card story-result">
             <h2 id="story-title" className="story-title">{story.title}</h2>
             
@@ -560,31 +564,33 @@ const App = () => {
               </div>
             )}
 
-            <div className="audio-buttons">
-              {!playing ? (
-                <button
-                  onClick={playAudio}
-                  className="button audio-button"
-                >
-                  🔊 Play with audio
-                </button>
-              ) : (
-                <>
+            {isAudioReady && (
+              <div className="audio-buttons">
+                {!playing ? (
                   <button
-                    onClick={pauseAudio}
-                    className="button audio-button mr"
-                  >
-                    ⏸ Pause
-                  </button>
-                  <button
-                    onClick={stopAudio}
+                    onClick={playAudio}
                     className="button audio-button"
                   >
-                    ⏹ Stop
+                    🔊 Play with audio
                   </button>
-                </>
-              )}
-            </div>
+                ) : (
+                  <>
+                    <button
+                      onClick={pauseAudio}
+                      className="button audio-button mr"
+                    >
+                      ⏸ Pause
+                    </button>
+                    <button
+                      onClick={stopAudio}
+                      className="button audio-button"
+                    >
+                      ⏹ Stop
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
 
             <div className="story-content">
               {story.content.map((p, i) => (
