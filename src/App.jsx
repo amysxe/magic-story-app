@@ -193,7 +193,7 @@ const App = () => {
           color: #ea580c;
           text-align: center;
           padding-top: 2rem;
-          margin-bottom: 0.25rem;
+          margin-bottom: 0.5rem;
         }
 
         @media (min-width: 640px) {
@@ -210,7 +210,7 @@ const App = () => {
           color: #4b5563;
           margin-top: 0;
           text-align: center;
-          margin-bottom: 2rem;
+          margin-bottom: 3rem;
         }
         
         .card {
@@ -266,6 +266,7 @@ const App = () => {
         .button {
           transition: transform 0.3s, background-color 0.3s;
           border-radius: 1.5rem;
+          border: none;
         }
         .generate-button {
           width: 100%;
@@ -408,7 +409,7 @@ const App = () => {
           position: fixed;
           bottom: 1.5rem;
           right: 1.5rem;
-          padding: 0.75rem;
+          padding: 0.75rem 1.5rem;
           background-color: #fff7ed;
           color: #ea580c;
           border-radius: 9999px;
@@ -566,9 +567,7 @@ const App = () => {
           className="button scroll-button"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
-            <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
-          </svg>
+          ↑ Scroll to top
         </button>
 
         <footer className="footer">
