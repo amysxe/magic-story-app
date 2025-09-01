@@ -88,11 +88,37 @@ const App = () => {
       }
 
       const data = await res.json();
+      
+      const audioRes = await fetchWithRetry('/api/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            type: 'audio',
+            text: [data.title, ...data.content].join("\n"),
+            language
+          }),
+        });
 
-      setStory(data);
-      setLoading(false);
-      storyRef.current?.scrollIntoView({ behavior: "smooth" });
-
+        if (!audioRes.ok) {
+          throw new Error('TTS generation failed.');
+        }
+        
+        const audioBlob = await audioRes.blob();
+        const audioURL = URL.createObjectURL(audioBlob);
+        const audioEl = new Audio(audioURL);
+        audioRef.current = audioEl;
+        
+        audioEl.oncanplaythrough = () => {
+          setStory(data);
+          setLoading(false);
+          storyRef.current?.scrollIntoView({ behavior: "smooth" });
+        };
+        audioEl.onended = () => {
+          setPlaying(false);
+          setPaused(false);
+        };
     } catch (err) {
       console.error(err);
       setLoading(false);
@@ -100,49 +126,17 @@ const App = () => {
     }
   };
 
-  const playAudio = async (text) => {
-    setError('');
+  const playAudio = () => {
     if (audioRef.current && paused) {
       audioRef.current.play();
       setPaused(false);
+      setPlaying(true);
       return;
     }
 
-    if (audioRef.current) audioRef.current.pause();
-    setPlaying(true);
-
-    try {
-      const payload = {
-        type: 'audio',
-        text,
-        language,
-      };
-
-      const res = await fetchWithRetry('/api/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        throw new Error('TTS generation failed.');
-      }
-      
-      const audioBlob = await res.blob();
-      const audioURL = URL.createObjectURL(audioBlob);
-      const audioEl = new Audio(audioURL);
-      audioRef.current = audioEl;
-      audioEl.play();
-      audioEl.onended = () => {
-        setPlaying(false);
-        setPaused(false);
-      };
-    } catch (err) {
-      console.error(err);
-      setError("Failed to play audio. Please try again.");
-      setPlaying(false);
+    if (audioRef.current) {
+      audioRef.current.play();
+      setPlaying(true);
     }
   };
 
@@ -150,6 +144,7 @@ const App = () => {
     if (audioRef.current) {
       audioRef.current.pause();
       setPaused(true);
+      setPlaying(false);
     }
   };
 
@@ -303,7 +298,7 @@ const App = () => {
           left: 0;
           right: 0;
           bottom: 0;
-          background-color: rgba(0, 0, 0, 0.3);
+          background-color: rgba(0, 0, 0, 0.6);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -360,6 +355,7 @@ const App = () => {
           display: flex;
           justify-content: center;
           margin-bottom: 2rem;
+          height: 400px;
         }
         
         .story-image {
@@ -368,6 +364,7 @@ const App = () => {
           border-radius: 1rem;
           border: none;
           box-shadow: none;
+          object-fit: contain;
         }
 
         .audio-buttons {
@@ -532,7 +529,7 @@ const App = () => {
             <div className="audio-buttons">
               {!playing ? (
                 <button
-                  onClick={() => playAudio([story.title, ...story.content].join("\n"))}
+                  onClick={playAudio}
                   className="button audio-button"
                 >
                   🔊 Play with audio
