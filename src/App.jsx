@@ -1,64 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-// Utility function to convert PCM audio data to WAV Blob
-const pcmToWav = (pcmData, sampleRate) => {
-  const dataLength = pcmData.length * 2; // 16-bit
-  const buffer = new ArrayBuffer(44 + dataLength);
-  const view = new DataView(buffer);
-  
-  // WAV header
-  function writeString(view, offset, string) {
-    for (let i = 0; i < string.length; i++) {
-      view.setUint8(offset + i, string.charCodeAt(i));
-    }
-  }
-
-  writeString(view, 0, 'RIFF');
-  view.setUint32(4, 36 + dataLength, true);
-  writeString(view, 8, 'WAVE');
-  view.setUint32(12, 0x20746d66, true); // 'fmt '
-  view.setUint32(16, 16, true); // PCM format length
-  view.setUint16(20, 1, true); // PCM format
-  view.setUint16(22, 1, true); // Mono channel
-  view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * 2, true); // Byte rate
-  view.setUint16(32, 2, true); // Block align
-  view.setUint16(34, 16, true); // Bits per sample
-  writeString(view, 36, 'data');
-  view.setUint32(40, dataLength, true);
-
-  // Write PCM data
-  let offset = 44;
-  for (let i = 0; i < pcmData.length; i++) {
-    view.setInt16(offset, pcmData[i], true);
-    offset += 2;
-  }
-
-  return new Blob([view], { type: 'audio/wav' });
-};
-
-// Base64 to ArrayBuffer
-const base64ToArrayBuffer = (base64) => {
-  const binaryString = window.atob(base64);
-  const len = binaryString.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes.buffer;
-};
-
-// Selector to pick a voice based on the selected language
 const VoiceSelector = ({ language }) => {
   switch (language) {
     case 'English':
-      return 'Kore';
+      return 'onyx';
     case 'Bahasa':
-      return 'Leda';
+      return 'fable';
     case 'German':
-      return 'Fenrir';
+      return 'nova';
     default:
-      return 'Kore';
+      return 'onyx';
   }
 };
 
@@ -102,6 +53,8 @@ const App = () => {
       try {
         const response = await fetch(url, options);
         if (response.ok) return response;
+        const errorText = await response.text();
+        console.error(`Request failed with status ${response.status}: ${errorText}`);
         throw new Error(`Request failed with status ${response.status}`);
       } catch (err) {
         console.error(`Attempt ${i + 1} failed:`, err);
@@ -125,78 +78,71 @@ const App = () => {
     setLoading(true);
     setStory(null);
 
+    // IMPORTANT: Replace 'YOUR_OPENAI_API_KEY' with your actual key here.
+    const apiKey = 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;
+
     try {
-      const payload = {
-        contents: [{
-          parts: [{
-            text: `Write a ${length} children's story in ${language} about a ${category}, teaching the moral of ${moral}. The story must be returned as a JSON object with a "title" field (string) and a "content" field (an array of strings for paragraphs).`
-          }]
-        }],
-        generationConfig: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: "OBJECT",
-            properties: {
-              title: { type: "STRING" },
-              content: {
-                type: "ARRAY",
-                items: { type: "STRING" }
-              }
-            }
+      const textPayload = {
+        model: "gpt-3.5-turbo",
+        messages: [
+          {
+            role: "system",
+            content: `You are a children's story writer. Generate a JSON object with a "title" field (string) and a "content" field (an array of strings for paragraphs).`
+          },
+          {
+            role: "user",
+            content: `Write a ${length} children's story in ${language} about a ${category}, teaching the moral of ${moral}.`
           }
-        },
+        ],
+        response_format: { type: "json_object" }
       };
 
       const imagePayload = {
-        instances: {
-          prompt: `Children's book illustration, pastel palette, soft outlines, whimsical, theme: ${category}, focus on one main scene that strongly represents the story (no text).`
-        },
-        parameters: {
-          sampleCount: 1
-        }
+        prompt: `Children's book illustration, pastel palette, soft outlines, whimsical, theme: ${category}, focus on one main scene that strongly represents the story (no text).`,
+        n: 1,
+        size: "1024x1024"
       };
 
       // Generate Story Text
-      const storyApiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=';
-      const storyResponse = await fetchWithRetry(storyApiUrl, {
+      const textApiUrl = 'https://api.openai.com/v1/chat/completions';
+      const textResponse = await fetchWithRetry(textApiUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify(textPayload),
       });
 
-      if (!storyResponse.ok) {
+      if (!textResponse.ok) {
         throw new Error('Failed to generate story text.');
       }
 
-      const storyResult = await storyResponse.json();
-      const storyText = storyResult.candidates?.[0]?.content?.parts?.[0]?.text;
-      const match = storyText.match(/\{[\s\S]*\}/);
-      if (!match) throw new Error("Invalid JSON from AI");
+      const textResult = await textResponse.json();
+      const storyContent = JSON.parse(textResult.choices[0].message.content);
 
-      const parsedStory = JSON.parse(match[0]);
-
-      if (!parsedStory || !parsedStory.title || !parsedStory.content) {
+      if (!storyContent || !storyContent.title || !storyContent.content) {
         throw new Error('Invalid story format received.');
       }
       
       // Generate Image
-      const imageApiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=';
+      const imageApiUrl = 'https://api.openai.com/v1/images/generations';
       const imageResponse = await fetchWithRetry(imageApiUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
         body: JSON.stringify(imagePayload),
       });
 
       let imageUrl = '';
       if (imageResponse.ok) {
         const imageResult = await imageResponse.json();
-        const base64Data = imageResult.predictions?.[0]?.bytesBase64Encoded;
-        if (base64Data) {
-          imageUrl = `data:image/png;base64,${base64Data}`;
-        }
+        imageUrl = imageResult.data?.[0]?.url;
       }
 
-      setStory({ ...parsedStory, image: imageUrl });
+      setStory({ ...storyContent, image: imageUrl });
       setLoading(false);
       storyRef.current?.scrollIntoView({ behavior: "smooth" });
 
@@ -218,47 +164,32 @@ const App = () => {
     if (audioRef.current) audioRef.current.pause();
     setPlaying(true);
 
+    const apiKey = 'YOUR_OPENAI_API_KEY';
+
     try {
-      const ttsApiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=';
+      const ttsApiUrl = 'https://api.openai.com/v1/audio/speech';
       const ttsPayload = {
-        contents: [{ parts: [{ text }] }],
-        generationConfig: {
-          responseModalities: ["AUDIO"],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: { voiceName: VoiceSelector({ language }) }
-            }
-          }
-        },
+        model: "tts-1",
+        input: text,
+        voice: VoiceSelector({ language }),
+        response_format: "mp3"
       };
 
       const res = await fetchWithRetry(ttsApiUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
         body: JSON.stringify(ttsPayload),
       });
 
       if (!res.ok) {
         throw new Error('TTS generation failed.');
       }
-
-      const result = await res.json();
-      const part = result?.candidates?.[0]?.content?.parts?.[0];
-      const audioData = part?.inlineData?.data;
-      const mimeType = part?.inlineData?.mimeType;
-
-      if (!audioData || !mimeType) {
-        throw new Error('Invalid audio data received.');
-      }
       
-      const sampleRateMatch = mimeType.match(/rate=(\d+)/);
-      const sampleRate = sampleRateMatch ? parseInt(sampleRateMatch[1], 10) : 16000;
-      
-      const pcmData = base64ToArrayBuffer(audioData);
-      const pcm16 = new Int16Array(pcmData);
-      const wavBlob = pcmToWav(pcm16, sampleRate);
-      
-      const audioURL = URL.createObjectURL(wavBlob);
+      const audioBlob = await res.blob();
+      const audioURL = URL.createObjectURL(audioBlob);
       const audioEl = new Audio(audioURL);
       audioRef.current = audioEl;
       audioEl.play();
