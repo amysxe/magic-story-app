@@ -419,6 +419,22 @@ const App = () => {
         .story-content p:first-child {
           text-indent: 0;
         }
+        .new-story-button-container {
+            margin-top: 2rem;
+            text-align: center;
+        }
+        .new-story-button {
+            background-color: #f97316;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 1.5rem;
+            font-weight: bold;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+        .new-story-button:hover {
+            background-color: #ea580c;
+            transform: translateY(-2px);
+        }
 
         .scroll-button {
           position: fixed;
@@ -575,6 +591,14 @@ const App = () => {
                 <p key={i}>{p}</p>
               ))}
             </div>
+            <div className="new-story-button-container">
+              <button
+                className="button new-story-button"
+                onClick={() => window.location.reload()}
+              >
+                Create New Story
+              </button>
+            </div>
           </div>
         )}
 
@@ -586,7 +610,7 @@ const App = () => {
         </button>
 
         <footer className="footer">
-          Copyright &copy; 2025 by Laniakea Digital // Naimy.
+          Copyright &copy; 2025 by Laniakea Digital
         </footer>
       </div>
     </div>
