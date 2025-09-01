@@ -221,54 +221,292 @@ const App = () => {
   };
 
   return (
-    <div className="bg-gradient-to-br from-orange-50 to-amber-100 min-h-screen font-sans text-gray-800 p-4 sm:p-8">
+    <div className="main-container">
       <style>
         {`
         @import url('https://fonts.googleapis.com/css2?family=Helvetica+Neue:wght@400;700;800&display=swap');
-        body {
+        
+        .main-container {
+          background: linear-gradient(to bottom right, #fff7ed, #fff1d6);
+          min-height: 100vh;
           font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+          color: #2d3748; /* gray-800 */
+          padding: 1rem; /* p-4 */
         }
-        .button {
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-          transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
-          transition-duration: 300ms;
+        
+        .container-main {
+          max-width: 64rem; /* max-w-4xl */
+          margin-left: auto;
+          margin-right: auto;
         }
-        .button:hover {
-          transform: scale(1.05);
+
+        .header-title {
+          font-size: 2.25rem; /* text-4xl */
+          font-weight: 800; /* font-extrabold */
+          color: #ea580c; /* orange-600 */
+          text-shadow: 0 1px 1px rgba(0, 0, 0, 0.05); /* drop-shadow-sm-custom */
+          text-align: center;
+          padding-top: 2rem; /* py-8 */
+          padding-bottom: 2rem;
         }
-        .button:disabled {
-          background-color: #9ca3af; /* gray-400 */
-          cursor: not-allowed;
+
+        @media (min-width: 640px) {
+          .header-title {
+            font-size: 3rem; /* sm:text-5xl */
+          }
+          .main-container {
+            padding: 2rem; /* sm:p-8 */
+          }
         }
+        
+        .header-subtitle {
+          font-size: 1.125rem; /* text-lg */
+          color: #4b5563; /* gray-600 */
+          margin-top: 0.5rem; /* mt-2 */
+          text-align: center;
+        }
+        
         .card {
           background-color: white;
           border: 1px solid #e5e7eb;
           border-radius: 1.5rem; /* rounded-3xl */
           box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+          padding: 1.5rem; /* p-6 */
         }
-        .shadow-lg-custom {
+        @media (min-width: 640px) {
+          .card {
+            padding: 2rem; /* sm:p-8 */
+          }
+        }
+
+        .form-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 1.5rem; /* gap-6 */
+        }
+        @media (min-width: 768px) {
+          .form-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+        
+        .form-group {
+          display: flex;
+          flex-direction: column;
+        }
+        
+        .label {
+          color: #374151; /* gray-700 */
+          font-weight: 600; /* font-semibold */
+          margin-bottom: 0.5rem; /* mb-2 */
+        }
+        
+        .select-input {
+          width: 100%;
+          padding: 0.75rem; /* p-3 */
+          border-radius: 0.5rem; /* rounded-lg */
+          border: 1px solid #d1d5db; /* border-gray-300 */
+          transition-property: box-shadow;
+          transition-duration: 300ms;
+        }
+        .select-input:focus {
+          outline: none;
+          box-shadow: 0 0 0 2px #fb923c; /* ring-2, ring-orange-400 */
+        }
+
+        .generate-button-container {
+          margin-top: 2rem; /* mt-8 */
+        }
+
+        .button {
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+          transition-property: background-color, transform, box-shadow;
+          transition-duration: 300ms;
+          border-radius: 1.5rem; /* rounded-3xl */
+        }
+        .generate-button {
+          width: 100%;
+          padding: 1rem; /* py-4 */
+          background-color: #f97316; /* orange-500 */
+          color: white;
+          font-weight: bold;
+          font-size: 1.125rem; /* text-lg */
           box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
-        .drop-shadow-sm-custom {
-          filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.05));
+        .generate-button:hover {
+          background-color: #ea580c; /* orange-600 */
+          transform: scale(1.05);
+        }
+        .generate-button:disabled {
+          background-color: #9ca3af; /* gray-400 */
+          cursor: not-allowed;
+          transform: scale(1);
+        }
+
+        .error-message {
+          margin-top: 1.5rem; /* mt-6 */
+          padding: 1rem; /* p-4 */
+          background-color: #fee2e2; /* red-100 */
+          color: #b91c1c; /* red-700 */
+          border-radius: 0.5rem; /* rounded-lg */
+          text-align: center;
+          font-weight: 500; /* font-medium */
+        }
+        
+        .loader-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: rgba(0, 0, 0, 0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 50;
+        }
+        
+        .loader-text {
+          text-align: center;
+          color: white;
+          font-size: 1.25rem; /* text-xl */
+        }
+        
+        .loader-spin {
+          animation: spin 1s linear infinite;
+          border-radius: 9999px; /* rounded-full */
+          height: 3rem; /* h-12 */
+          width: 3rem; /* w-12 */
+          border-width: 4px; /* border-4 */
+          border-style: solid;
+          border-color: #f97316; /* orange-500 */
+          border-top-color: white;
+          margin-left: auto;
+          margin-right: auto;
+          margin-bottom: 1rem; /* mb-4 */
+        }
+        
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        .story-result {
+          margin-top: 3rem; /* mt-12 */
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); /* shadow-2xl */
+        }
+
+        .story-title {
+          font-size: 1.875rem; /* text-3xl */
+          font-weight: 800; /* font-extrabold */
+          text-align: center;
+          color: #ea580c; /* orange-600 */
+          margin-bottom: 1.5rem; /* mb-6 */
+          text-shadow: 0 1px 1px rgba(0, 0, 0, 0.05); /* drop-shadow-sm-custom */
+        }
+        @media (min-width: 640px) {
+          .story-title {
+            font-size: 2.25rem; /* sm:text-4xl */
+          }
+        }
+
+        .image-container {
+          display: flex;
+          justify-content: center;
+          margin-bottom: 2rem; /* mb-8 */
+        }
+        
+        .story-image {
+          width: 100%;
+          max-width: 42rem; /* max-w-2xl */
+          border-radius: 1rem; /* rounded-2xl */
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-lg */
+          border: 1px solid #e5e7eb; /* border-gray-200 */
+        }
+
+        .audio-buttons {
+          text-align: center;
+          margin-bottom: 1.5rem; /* mb-6 */
+        }
+        
+        .audio-button {
+          padding-left: 1.5rem; /* px-6 */
+          padding-right: 1.5rem;
+          padding-top: 0.5rem; /* py-2 */
+          padding-bottom: 0.5rem;
+          border-radius: 9999px; /* rounded-full */
+          background-color: #fff7ed; /* orange-100 */
+          color: #ea580c; /* orange-600 */
+          font-weight: 600; /* font-semibold */
+          box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
+          transition-property: background-color;
+          transition-duration: 300ms;
+        }
+        .audio-button:hover {
+          background-color: #ffedd5; /* orange-200 */
+        }
+        .audio-button.mr {
+          margin-right: 0.5rem; /* mr-2 */
+        }
+
+        .story-content {
+          margin-top: 1.5rem; /* space-y-6 */
+          color: #374151; /* gray-700 */
+          font-size: 1.125rem; /* text-lg */
+          line-height: 1.625; /* leading-relaxed */
+        }
+        .story-content p {
+          margin-bottom: 1.5rem;
+          text-align: justify;
+          text-indent: 2rem;
+        }
+        .story-content p:first-child {
+          text-indent: 0;
+        }
+
+        .scroll-button {
+          position: fixed;
+          bottom: 1.5rem; /* bottom-6 */
+          right: 1.5rem; /* right-6 */
+          padding: 0.75rem; /* p-3 */
+          background-color: #fff7ed; /* orange-100 */
+          color: #ea580c; /* orange-600 */
+          border-radius: 9999px; /* rounded-full */
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-lg */
+          transition-property: transform, box-shadow;
+          transition-duration: 300ms;
+        }
+        .scroll-button:hover {
+          transform: scale(1.1);
+        }
+
+        .footer {
+          text-align: center;
+          color: #6b7280; /* gray-500 */
+          margin-top: 3rem; /* mt-12 */
+          margin-bottom: 1rem; /* mb-4 */
         }
         `}
       </style>
-      <div className="max-w-4xl mx-auto">
-        <header className="text-center py-8">
-          <h1 className="text-4xl sm:text-5xl font-extrabold text-orange-600 drop-shadow-sm-custom">Magic Story with AI</h1>
-          <p className="text-lg text-gray-600 mt-2">Generate fun and meaningful stories for kids!</p>
+      <div className="container-main">
+        <header>
+          <h1 className="header-title">Magic Story with AI</h1>
+          <p className="header-subtitle">Generate fun and meaningful stories for kids!</p>
         </header>
 
         {/* Input Fields Card */}
-        <div className="card p-6 sm:p-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="flex flex-col">
-              <label className="text-gray-700 font-semibold mb-2">Category</label>
+        <div className="card">
+          <div className="form-grid">
+            <div className="form-group">
+              <label className="label">Category</label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-400 transition-shadow"
+                className="select-input"
               >
                 <option>Animal</option>
                 <option>Fruit</option>
@@ -276,36 +514,36 @@ const App = () => {
                 <option>Mix & Random</option>
               </select>
             </div>
-            <div className="flex flex-col">
-              <label className="text-gray-700 font-semibold mb-2">Length</label>
+            <div className="form-group">
+              <label className="label">Length</label>
               <select
                 value={length}
                 onChange={(e) => setLength(e.target.value)}
-                className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-400 transition-shadow"
+                className="select-input"
               >
                 <option>5-10 min</option>
                 <option>10-15 min</option>
                 <option>&gt;15 min</option>
               </select>
             </div>
-            <div className="flex flex-col">
-              <label className="text-gray-700 font-semibold mb-2">Language</label>
+            <div className="form-group">
+              <label className="label">Language</label>
               <select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
-                className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-400 transition-shadow"
+                className="select-input"
               >
                 <option>English</option>
                 <option>Bahasa</option>
                 <option>German</option>
               </select>
             </div>
-            <div className="flex flex-col">
-              <label className="text-gray-700 font-semibold mb-2">Moral</label>
+            <div className="form-group">
+              <label className="label">Moral</label>
               <select
                 value={moral}
                 onChange={(e) => setMoral(e.target.value)}
-                className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-400 transition-shadow"
+                className="select-input"
               >
                 <option>Kindness</option>
                 <option>Friendship</option>
@@ -317,11 +555,11 @@ const App = () => {
         </div>
 
         {/* Generate Button */}
-        <div className="mt-8">
+        <div className="generate-button-container">
           <button
             onClick={generateStory}
             disabled={loading}
-            className="button w-full py-4 rounded-3xl bg-orange-500 text-white font-bold text-lg shadow-lg-custom hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="button generate-button"
           >
             {loading ? 'Generating...' : 'Generate Story'}
           </button>
@@ -329,16 +567,16 @@ const App = () => {
 
         {/* Error Message */}
         {error && (
-          <div className="mt-6 p-4 bg-red-100 text-red-700 rounded-lg text-center font-medium">
+          <div className="error-message">
             {error}
           </div>
         )}
 
         {/* Loader Overlay */}
         {loading && (
-          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-            <div className="text-center text-white text-xl">
-              <div className="animate-spin rounded-full h-12 w-12 border-4 border-t-4 border-orange-500 border-t-white mx-auto mb-4"></div>
+          <div className="loader-overlay">
+            <div className="loader-text">
+              <div className="loader-spin"></div>
               {loaderMessage}
             </div>
           </div>
@@ -346,25 +584,25 @@ const App = () => {
 
         {/* Story Result */}
         {story && (
-          <div ref={storyRef} className="card p-6 sm:p-10 mt-12 shadow-2xl">
-            <h2 id="story-title" className="text-3xl sm:text-4xl font-extrabold text-center text-orange-600 mb-6 drop-shadow-sm-custom">{story.title}</h2>
+          <div ref={storyRef} className="card story-result">
+            <h2 id="story-title" className="story-title">{story.title}</h2>
             
             {story.image && (
-              <div className="flex justify-center mb-8">
+              <div className="image-container">
                 <img
                   src={story.image}
                   alt="Story illustration"
-                  className="w-full max-w-2xl rounded-2xl shadow-lg border border-gray-200"
+                  className="story-image"
                   onError={(e) => e.target.src = "https://placehold.co/1024x1024/E5E7EB/4B5563?text=Image+Unavailable"}
                 />
               </div>
             )}
 
-            <div className="text-center mb-6">
+            <div className="audio-buttons">
               {!playing ? (
                 <button
                   onClick={() => playAudio([story.title, ...story.content].join("\n"))}
-                  className="button px-6 py-2 rounded-full bg-orange-100 text-orange-600 font-semibold shadow-sm hover:bg-orange-200"
+                  className="button audio-button"
                 >
                   🔊 Play with audio
                 </button>
@@ -372,13 +610,13 @@ const App = () => {
                 <>
                   <button
                     onClick={pauseAudio}
-                    className="button px-6 py-2 rounded-full bg-orange-100 text-orange-600 font-semibold shadow-sm hover:bg-orange-200 mr-2"
+                    className="button audio-button mr"
                   >
                     ⏸ Pause
                   </button>
                   <button
                     onClick={stopAudio}
-                    className="button px-6 py-2 rounded-full bg-orange-100 text-orange-600 font-semibold shadow-sm hover:bg-orange-200"
+                    className="button audio-button"
                   >
                     ⏹ Stop
                   </button>
@@ -386,9 +624,9 @@ const App = () => {
               )}
             </div>
 
-            <div className="space-y-6 text-gray-700 text-lg leading-relaxed">
+            <div className="story-content">
               {story.content.map((p, i) => (
-                <p key={i} className="text-justify indent-8 first:indent-0">{p}</p>
+                <p key={i}>{p}</p>
               ))}
             </div>
           </div>
@@ -396,7 +634,7 @@ const App = () => {
 
         {/* Scroll to top */}
         <button
-          className="button fixed bottom-6 right-6 p-3 bg-orange-100 text-orange-600 rounded-full shadow-lg"
+          className="button scroll-button"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
@@ -404,7 +642,7 @@ const App = () => {
           </svg>
         </button>
 
-        <footer className="text-center text-gray-500 mt-12 mb-4">
+        <footer className="footer">
           Copyright &copy; 2025 by Laniakea Digital
         </footer>
       </div>
