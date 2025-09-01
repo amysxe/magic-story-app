@@ -14,7 +14,9 @@ const App = () => {
 
   const [playing, setPlaying] = useState(false);
   const [paused, setPaused] = useState(false);
-  const audioRef = useRef(null);
+  // Create the Audio element once and store it in a ref.
+  // This helps with mobile browser autoplay policies.
+  const audioRef = useRef(typeof Audio !== 'undefined' ? new Audio() : null);
 
   const storyRef = useRef();
 
@@ -62,7 +64,9 @@ const App = () => {
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
-      URL.revokeObjectURL(audioRef.current.src);
+      if (audioRef.current.src) {
+        URL.revokeObjectURL(audioRef.current.src);
+      }
     }
     setPlaying(false);
     setPaused(false);
@@ -127,16 +131,17 @@ const App = () => {
       
       const audioBlob = await audioRes.blob();
       const audioURL = URL.createObjectURL(audioBlob);
-      const audioEl = new Audio(audioURL);
-      audioRef.current = audioEl;
-
-      audioEl.oncanplaythrough = () => {
-        setIsAudioReady(true);
-      };
-      audioEl.onended = () => {
-        setPlaying(false);
-        setPaused(false);
-      };
+      
+      if (audioRef.current) {
+        audioRef.current.src = audioURL;
+        audioRef.current.oncanplaythrough = () => {
+          setIsAudioReady(true);
+        };
+        audioRef.current.onended = () => {
+          setPlaying(false);
+          setPaused(false);
+        };
+      }
     } catch (err) {
       console.error(err);
       setError("Failed to generate story. Please try again.");
@@ -623,7 +628,7 @@ const App = () => {
         )}
 
         <footer className="footer">
-          Copyright &copy; 2025 by Laniakea Digital
+          Copyright &copy; 2025 by Laniakea Digital // Naimy
         </footer>
       </div>
     </div>
