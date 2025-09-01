@@ -1,138 +1,101 @@
-import { Readable } from 'stream';
+import OpenAI from "openai";
 
-const voiceSelector = (language) => {
-    switch (language) {
-      case 'English':
-        return 'onyx';
-      case 'Bahasa':
-        return 'fable';
-      case 'German':
-        return 'nova';
-      default:
-        return 'onyx';
-    }
-  };
+// Load the API key from the environment variables
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
-  }
+export const config = {
+  runtime: 'edge',
+};
 
-  const { type, category, length, language, moral, text } = req.body;
-  const apiKey = process.env.OPENAI_API_KEY;
-
-  if (!apiKey) {
-    console.error('OPENAI_API_KEY is not set in environment variables.');
-    return res.status(500).json({ error: 'Server configuration error: API key missing.' });
-  }
-
+// Main handler for the API endpoint
+export default async function handler(req) {
   try {
-    let apiEndpoint = '';
-    let apiPayload = {};
-    let responseFormat = 'json';
-    let finalData;
+    const { type, category, length, language, moral, text } = await req.json();
 
-    switch (type) {
-      case 'story':
-        apiEndpoint = 'https://api.openai.com/v1/chat/completions';
-        apiPayload = {
-          model: "gpt-3.5-turbo",
-          messages: [
-            {
-              role: "system",
-              content: `You are a children's story writer. Generate a JSON object with a "title" field (string) and a "content" field (an array of strings for paragraphs). The JSON object must be valid.`
-            },
-            {
-              role: "user",
-              content: `Write a ${length} children's story in ${language} about a ${category}, teaching the moral of ${moral}.`
-            }
-          ]
-        };
-        break;
+    if (type === 'story') {
+      const storyPrompt = `Create a short children's story (around ${length}, in ${language}, with a moral about ${moral}). The story should feature a character that is a ${category}. The response MUST be a JSON object with two fields: "title" (string) and "content" (an array of strings, where each string is a paragraph of the story). The story should be sweet and gentle.`;
 
-      case 'audio':
-        apiEndpoint = 'https://api.openai.com/v1/audio/speech';
-        apiPayload = {
-          model: "tts-1",
-          input: text,
-          voice: voiceSelector(language),
-          response_format: "mp3"
-        };
-        responseFormat = 'blob';
-        break;
+      const imagePrompt = `A children's storybook illustration of a happy ${category} character, watercolor style, soft colors, gentle and friendly atmosphere.`;
 
-      default:
-        return res.status(400).json({ error: 'Invalid request type.' });
-    }
+      const response = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: [{
+          role: "user",
+          content: storyPrompt,
+        }],
+        response_format: { type: "json_object" },
+      });
 
-    const apiResponse = await fetch(apiEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify(apiPayload),
-    });
+      const storyContent = JSON.parse(response.choices[0].message.content);
 
-    if (!apiResponse.ok) {
-      const errorText = await apiResponse.text();
-      console.error(`OpenAI API call failed: ${errorText}`);
-      throw new Error(`OpenAI API error: ${apiResponse.statusText}`);
-    }
-
-    if (responseFormat === 'blob') {
-      res.setHeader('Content-Type', 'audio/mp3');
-      const audioBuffer = await apiResponse.arrayBuffer();
-      const audioStream = new Readable();
-      audioStream.push(Buffer.from(audioBuffer));
-      audioStream.push(null);
-      audioStream.pipe(res);
-    } else {
-      const data = await apiResponse.json();
-      
-      if (type === 'story') {
-        try {
-          const storyContent = JSON.parse(data.choices[0].message.content);
-          
-          try {
-            const imagePayload = {
-                prompt: `Children's book illustration, pastel palette, soft outlines, whimsical, theme: ${category}, focus on one main scene that strongly represents the story (no text).`,
-                n: 1,
-                size: "1024x1024"
-            };
-            const imageApiUrl = 'https://api.openai.com/v1/images/generations';
-            const imageResponse = await fetch(imageApiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                },
-                body: JSON.stringify(imagePayload),
-            });
-
-            if (imageResponse.ok) {
-                const imageResult = await imageResponse.json();
-                storyContent.image = imageResult.data?.[0]?.url;
-            } else {
-              console.error(`Image generation failed with status: ${imageResponse.status}`);
-            }
-          } catch (imageError) {
-            console.error("Error generating image:", imageError);
-          }
-
-          finalData = storyContent;
-        } catch (jsonError) {
-          console.error("Failed to parse JSON from OpenAI:", jsonError);
-          console.error("Raw response:", data.choices[0].message.content);
-          throw new Error("Invalid JSON response from story generation.");
-        }
+      let imageUrl = null;
+      try {
+        const imageResponse = await openai.images.generate({
+          model: "dall-e-3",
+          prompt: imagePrompt,
+          n: 1,
+          size: "1024x1024",
+        });
+        imageUrl = imageResponse.data[0].url;
+      } catch (imageError) {
+        console.error("OpenAI Image API call failed:", imageError);
       }
-      
-      res.status(200).json(finalData);
-    }
 
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'An error occurred while processing your request.' });
+      return new Response(JSON.stringify({ ...storyContent, image: imageUrl }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } else if (type === 'audio') {
+      const voiceSelector = (lang) => {
+        switch (lang) {
+          case 'English':
+            return 'alloy';
+          case 'Bahasa':
+            return 'shimmer'; // Fallback as no specific Bahasa voice is available
+          case 'German':
+            return 'nova';
+          default:
+            return 'alloy';
+        }
+      };
+
+      try {
+        const audio = await openai.audio.speech.create({
+          model: "tts-1",
+          voice: voiceSelector(language),
+          input: text,
+        });
+
+        const buffer = await audio.arrayBuffer();
+        const audioBlob = new Blob([buffer], { type: 'audio/mpeg' });
+
+        return new Response(audioBlob, {
+          status: 200,
+          headers: {
+            'Content-Type': 'audio/mpeg',
+            'Content-Disposition': 'attachment; filename="story_audio.mp3"',
+          },
+        });
+      } catch (audioError) {
+        console.error("OpenAI TTS API call failed:", audioError);
+        return new Response(JSON.stringify({ error: 'TTS generation failed.' }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      return new Response(JSON.stringify({ error: 'Invalid request type.' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  } catch (err) {
+    console.error("An unexpected error occurred:", err);
+    return new Response(JSON.stringify({ error: 'Failed to process the request.' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }
