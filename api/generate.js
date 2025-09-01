@@ -94,24 +94,30 @@ export default async function handler(req, res) {
         try {
           const storyContent = JSON.parse(data.choices[0].message.content);
           
-          const imagePayload = {
-              prompt: `Children's book illustration, pastel palette, soft outlines, whimsical, theme: ${category}, focus on one main scene that strongly represents the story (no text).`,
-              n: 1,
-              size: "1024x1024"
-          };
-          const imageApiUrl = 'https://api.openai.com/v1/images/generations';
-          const imageResponse = await fetch(imageApiUrl, {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${apiKey}`
-              },
-              body: JSON.stringify(imagePayload),
-          });
+          try {
+            const imagePayload = {
+                prompt: `Children's book illustration, pastel palette, soft outlines, whimsical, theme: ${category}, focus on one main scene that strongly represents the story (no text).`,
+                n: 1,
+                size: "1024x1024"
+            };
+            const imageApiUrl = 'https://api.openai.com/v1/images/generations';
+            const imageResponse = await fetch(imageApiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify(imagePayload),
+            });
 
-          if (imageResponse.ok) {
-              const imageResult = await imageResponse.json();
-              storyContent.image = imageResult.data?.[0]?.url;
+            if (imageResponse.ok) {
+                const imageResult = await imageResponse.json();
+                storyContent.image = imageResult.data?.[0]?.url;
+            } else {
+              console.error(`Image generation failed with status: ${imageResponse.status}`);
+            }
+          } catch (imageError) {
+            console.error("Error generating image:", imageError);
           }
 
           finalData = storyContent;
