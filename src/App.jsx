@@ -16,8 +16,8 @@ const pcmToWav = (pcmData, sampleRate) => {
   writeString(view, 0, 'RIFF');
   view.setUint32(4, 36 + dataLength, true);
   writeString(view, 8, 'WAVE');
-  writeString(view, 12, 'fmt ');
-  view.setUint32(16, 16, true);
+  view.setUint32(12, 0x20746d66, true); // 'fmt '
+  view.setUint32(16, 16, true); // PCM format length
   view.setUint16(20, 1, true); // PCM format
   view.setUint16(22, 1, true); // Mono channel
   view.setUint32(24, sampleRate, true);
@@ -97,6 +97,23 @@ const App = () => {
     return () => clearInterval(interval);
   }, [loading]);
 
+  const fetchWithRetry = async (url, options, retries = 3) => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const response = await fetch(url, options);
+        if (response.ok) return response;
+        throw new Error(`Request failed with status ${response.status}`);
+      } catch (err) {
+        console.error(`Attempt ${i + 1} failed:`, err);
+        if (i < retries - 1) {
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+        } else {
+          throw err;
+        }
+      }
+    }
+  };
+
   const generateStory = async () => {
     setError('');
     // Stop audio if playing
@@ -141,7 +158,7 @@ const App = () => {
 
       // Generate Story Text
       const storyApiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=';
-      const storyResponse = await fetch(storyApiUrl, {
+      const storyResponse = await fetchWithRetry(storyApiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -153,14 +170,18 @@ const App = () => {
 
       const storyResult = await storyResponse.json();
       const storyText = storyResult.candidates?.[0]?.content?.parts?.[0]?.text;
-      const parsedStory = storyText ? JSON.parse(storyText) : null;
+      const match = storyText.match(/\{[\s\S]*\}/);
+      if (!match) throw new Error("Invalid JSON from AI");
+
+      const parsedStory = JSON.parse(match[0]);
+
       if (!parsedStory || !parsedStory.title || !parsedStory.content) {
         throw new Error('Invalid story format received.');
       }
       
       // Generate Image
       const imageApiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=';
-      const imageResponse = await fetch(imageApiUrl, {
+      const imageResponse = await fetchWithRetry(imageApiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(imagePayload),
@@ -211,7 +232,7 @@ const App = () => {
         },
       };
 
-      const res = await fetch(ttsApiUrl, {
+      const res = await fetchWithRetry(ttsApiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(ttsPayload),
@@ -269,73 +290,77 @@ const App = () => {
   };
 
   return (
-    <div className="bg-gray-100 min-h-screen font-sans p-4 sm:p-8">
+    <div className="bg-gradient-to-br from-orange-50 to-amber-100 min-h-screen font-sans text-gray-800 p-4 sm:p-8">
       {/* Tailwind CSS CDN script */}
       <script src="https://cdn.tailwindcss.com"></script>
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold text-center text-gray-800 mt-4 mb-2">Magic Story with AI</h1>
-        <p className="text-center text-gray-600 mb-8">Generate fun and meaningful stories for kids!</p>
+        <header className="text-center py-8">
+          <h1 className="text-4xl sm:text-5xl font-extrabold text-orange-600 drop-shadow-sm">Magic Story with AI</h1>
+          <p className="text-lg text-gray-600 mt-2">Generate fun and meaningful stories for kids!</p>
+        </header>
 
-        {/* Input Fields */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white p-6 rounded-xl shadow-md">
-          <div className="flex flex-col">
-            <label className="text-gray-700 font-semibold mb-1">Category</label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full p-3 rounded-lg border-2 border-gray-200 focus:outline-none focus:border-orange-400 transition-colors"
-            >
-              <option>Animal</option>
-              <option>Fruit</option>
-              <option>Person</option>
-              <option>Mix & Random</option>
-            </select>
-          </div>
-          <div className="flex flex-col">
-            <label className="text-gray-700 font-semibold mb-1">Length</label>
-            <select
-              value={length}
-              onChange={(e) => setLength(e.target.value)}
-              className="w-full p-3 rounded-lg border-2 border-gray-200 focus:outline-none focus:border-orange-400 transition-colors"
-            >
-              <option>5-10 min</option>
-              <option>10-15 min</option>
-              <option>&gt;15 min</option>
-            </select>
-          </div>
-          <div className="flex flex-col">
-            <label className="text-gray-700 font-semibold mb-1">Language</label>
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              className="w-full p-3 rounded-lg border-2 border-gray-200 focus:outline-none focus:border-orange-400 transition-colors"
-            >
-              <option>English</option>
-              <option>Bahasa</option>
-              <option>German</option>
-            </select>
-          </div>
-          <div className="flex flex-col">
-            <label className="text-gray-700 font-semibold mb-1">Moral</label>
-            <select
-              value={moral}
-              onChange={(e) => setMoral(e.target.value)}
-              className="w-full p-3 rounded-lg border-2 border-gray-200 focus:outline-none focus:border-orange-400 transition-colors"
-            >
-              <option>Kindness</option>
-              <option>Friendship</option>
-              <option>Honesty</option>
-              <option>Perseverance</option>
-            </select>
+        {/* Input Fields Card */}
+        <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-gray-200">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="flex flex-col">
+              <label className="text-gray-700 font-semibold mb-2">Category</label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-400 transition-shadow"
+              >
+                <option>Animal</option>
+                <option>Fruit</option>
+                <option>Person</option>
+                <option>Mix & Random</option>
+              </select>
+            </div>
+            <div className="flex flex-col">
+              <label className="text-gray-700 font-semibold mb-2">Length</label>
+              <select
+                value={length}
+                onChange={(e) => setLength(e.target.value)}
+                className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-400 transition-shadow"
+              >
+                <option>5-10 min</option>
+                <option>10-15 min</option>
+                <option>&gt;15 min</option>
+              </select>
+            </div>
+            <div className="flex flex-col">
+              <label className="text-gray-700 font-semibold mb-2">Language</label>
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-400 transition-shadow"
+              >
+                <option>English</option>
+                <option>Bahasa</option>
+                <option>German</option>
+              </select>
+            </div>
+            <div className="flex flex-col">
+              <label className="text-gray-700 font-semibold mb-2">Moral</label>
+              <select
+                value={moral}
+                onChange={(e) => setMoral(e.target.value)}
+                className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-400 transition-shadow"
+              >
+                <option>Kindness</option>
+                <option>Friendship</option>
+                <option>Honesty</option>
+                <option>Perseverance</option>
+              </select>
+            </div>
           </div>
         </div>
 
         {/* Generate Button */}
-        <div className="mt-6">
+        <div className="mt-8">
           <button
             onClick={generateStory}
             disabled={loading}
-            className="w-full p-4 rounded-lg bg-orange-500 text-white font-bold text-lg shadow-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-4 rounded-3xl bg-orange-500 text-white font-bold text-lg shadow-lg hover:bg-orange-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed transform hover:scale-105"
           >
             {loading ? 'Generating...' : 'Generate Story'}
           </button>
@@ -343,7 +368,7 @@ const App = () => {
 
         {/* Error Message */}
         {error && (
-          <div className="mt-4 p-4 bg-red-100 text-red-700 rounded-lg text-center">
+          <div className="mt-6 p-4 bg-red-100 text-red-700 rounded-lg text-center font-medium">
             {error}
           </div>
         )}
@@ -360,15 +385,15 @@ const App = () => {
 
         {/* Story Result */}
         {story && (
-          <div ref={storyRef} className="bg-white p-6 sm:p-10 mt-8 rounded-xl shadow-md">
-            <h2 id="story-title" className="text-3xl font-bold text-center text-gray-800 mb-6">{story.title}</h2>
+          <div ref={storyRef} className="bg-white p-6 sm:p-10 mt-12 rounded-3xl shadow-2xl border border-gray-200">
+            <h2 id="story-title" className="text-3xl sm:text-4xl font-extrabold text-center text-orange-600 mb-6 drop-shadow-sm">{story.title}</h2>
             
             {story.image && (
-              <div className="flex justify-center mb-6">
+              <div className="flex justify-center mb-8">
                 <img
                   src={story.image}
-                  alt="Story title illustration"
-                  className="w-full max-w-lg rounded-xl shadow-lg"
+                  alt="Story illustration"
+                  className="w-full max-w-2xl rounded-2xl shadow-lg border border-gray-200"
                   onError={(e) => e.target.src = "https://placehold.co/1024x1024/E5E7EB/4B5563?text=Image+Unavailable"}
                 />
               </div>
@@ -378,7 +403,7 @@ const App = () => {
               {!playing ? (
                 <button
                   onClick={() => playAudio([story.title, ...story.content].join("\n"))}
-                  className="px-6 py-2 rounded-full bg-orange-100 text-orange-600 font-semibold shadow-sm hover:bg-orange-200 transition-colors"
+                  className="px-6 py-2 rounded-full bg-orange-100 text-orange-600 font-semibold shadow-sm hover:bg-orange-200 transition-colors transform hover:scale-105"
                 >
                   🔊 Play with audio
                 </button>
@@ -386,13 +411,13 @@ const App = () => {
                 <>
                   <button
                     onClick={pauseAudio}
-                    className="px-6 py-2 rounded-full bg-orange-100 text-orange-600 font-semibold shadow-sm hover:bg-orange-200 transition-colors mr-2"
+                    className="px-6 py-2 rounded-full bg-orange-100 text-orange-600 font-semibold shadow-sm hover:bg-orange-200 transition-colors transform hover:scale-105 mr-2"
                   >
                     ⏸ Pause
                   </button>
                   <button
                     onClick={stopAudio}
-                    className="px-6 py-2 rounded-full bg-orange-100 text-orange-600 font-semibold shadow-sm hover:bg-orange-200 transition-colors"
+                    className="px-6 py-2 rounded-full bg-orange-100 text-orange-600 font-semibold shadow-sm hover:bg-orange-200 transition-colors transform hover:scale-105"
                   >
                     ⏹ Stop
                   </button>
@@ -400,9 +425,9 @@ const App = () => {
               )}
             </div>
 
-            <div className="space-y-6 text-gray-700 text-lg">
+            <div className="space-y-6 text-gray-700 text-lg leading-relaxed">
               {story.content.map((p, i) => (
-                <p key={i} className="leading-relaxed text-justify">{p}</p>
+                <p key={i} className="text-justify indent-8 first:indent-0">{p}</p>
               ))}
             </div>
           </div>
@@ -410,7 +435,7 @@ const App = () => {
 
         {/* Scroll to top */}
         <button
-          className="fixed bottom-4 right-4 p-3 bg-orange-100 text-orange-600 rounded-full shadow-lg hover:bg-orange-200 transition-colors"
+          className="fixed bottom-6 right-6 p-3 bg-orange-100 text-orange-600 rounded-full shadow-lg hover:bg-orange-200 transition-colors transform hover:scale-110"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
