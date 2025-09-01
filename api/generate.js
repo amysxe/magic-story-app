@@ -1,5 +1,3 @@
-import { OpenAIStream, StreamingTextResponse } from 'ai';
-
 export const config = {
   runtime: 'edge',
 };
