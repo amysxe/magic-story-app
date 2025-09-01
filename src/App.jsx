@@ -222,16 +222,46 @@ const App = () => {
 
   return (
     <div className="bg-gradient-to-br from-orange-50 to-amber-100 min-h-screen font-sans text-gray-800 p-4 sm:p-8">
-      {/* Tailwind CSS CDN script */}
-      <script src="https://cdn.tailwindcss.com"></script>
+      <style>
+        {`
+        @import url('https://fonts.googleapis.com/css2?family=Helvetica+Neue:wght@400;700;800&display=swap');
+        body {
+          font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+        .button {
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+          transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+          transition-duration: 300ms;
+        }
+        .button:hover {
+          transform: scale(1.05);
+        }
+        .button:disabled {
+          background-color: #9ca3af; /* gray-400 */
+          cursor: not-allowed;
+        }
+        .card {
+          background-color: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 1.5rem; /* rounded-3xl */
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .shadow-lg-custom {
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .drop-shadow-sm-custom {
+          filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.05));
+        }
+        `}
+      </style>
       <div className="max-w-4xl mx-auto">
         <header className="text-center py-8">
-          <h1 className="text-4xl sm:text-5xl font-extrabold text-orange-600 drop-shadow-sm">Magic Story with AI</h1>
+          <h1 className="text-4xl sm:text-5xl font-extrabold text-orange-600 drop-shadow-sm-custom">Magic Story with AI</h1>
           <p className="text-lg text-gray-600 mt-2">Generate fun and meaningful stories for kids!</p>
         </header>
 
         {/* Input Fields Card */}
-        <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-gray-200">
+        <div className="card p-6 sm:p-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="flex flex-col">
               <label className="text-gray-700 font-semibold mb-2">Category</label>
@@ -291,7 +321,7 @@ const App = () => {
           <button
             onClick={generateStory}
             disabled={loading}
-            className="w-full py-4 rounded-3xl bg-orange-500 text-white font-bold text-lg shadow-lg hover:bg-orange-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed transform hover:scale-105"
+            className="button w-full py-4 rounded-3xl bg-orange-500 text-white font-bold text-lg shadow-lg-custom hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             {loading ? 'Generating...' : 'Generate Story'}
           </button>
@@ -316,8 +346,8 @@ const App = () => {
 
         {/* Story Result */}
         {story && (
-          <div ref={storyRef} className="bg-white p-6 sm:p-10 mt-12 rounded-3xl shadow-2xl border border-gray-200">
-            <h2 id="story-title" className="text-3xl sm:text-4xl font-extrabold text-center text-orange-600 mb-6 drop-shadow-sm">{story.title}</h2>
+          <div ref={storyRef} className="card p-6 sm:p-10 mt-12 shadow-2xl">
+            <h2 id="story-title" className="text-3xl sm:text-4xl font-extrabold text-center text-orange-600 mb-6 drop-shadow-sm-custom">{story.title}</h2>
             
             {story.image && (
               <div className="flex justify-center mb-8">
@@ -334,7 +364,7 @@ const App = () => {
               {!playing ? (
                 <button
                   onClick={() => playAudio([story.title, ...story.content].join("\n"))}
-                  className="px-6 py-2 rounded-full bg-orange-100 text-orange-600 font-semibold shadow-sm hover:bg-orange-200 transition-colors transform hover:scale-105"
+                  className="button px-6 py-2 rounded-full bg-orange-100 text-orange-600 font-semibold shadow-sm hover:bg-orange-200"
                 >
                   🔊 Play with audio
                 </button>
@@ -342,13 +372,13 @@ const App = () => {
                 <>
                   <button
                     onClick={pauseAudio}
-                    className="px-6 py-2 rounded-full bg-orange-100 text-orange-600 font-semibold shadow-sm hover:bg-orange-200 transition-colors transform hover:scale-105 mr-2"
+                    className="button px-6 py-2 rounded-full bg-orange-100 text-orange-600 font-semibold shadow-sm hover:bg-orange-200 mr-2"
                   >
                     ⏸ Pause
                   </button>
                   <button
                     onClick={stopAudio}
-                    className="px-6 py-2 rounded-full bg-orange-100 text-orange-600 font-semibold shadow-sm hover:bg-orange-200 transition-colors transform hover:scale-105"
+                    className="button px-6 py-2 rounded-full bg-orange-100 text-orange-600 font-semibold shadow-sm hover:bg-orange-200"
                   >
                     ⏹ Stop
                   </button>
@@ -366,7 +396,7 @@ const App = () => {
 
         {/* Scroll to top */}
         <button
-          className="fixed bottom-6 right-6 p-3 bg-orange-100 text-orange-600 rounded-full shadow-lg hover:bg-orange-200 transition-colors transform hover:scale-110"
+          className="button fixed bottom-6 right-6 p-3 bg-orange-100 text-orange-600 rounded-full shadow-lg"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
